@@ -1,0 +1,1 @@
+NIFTY LAB Android conversion source. Configure your deployed HTTPS Render URL in frontend/capacitor.config.ts, then follow ANDROID_APK_BUILD_GUIDE.md to generate the Android project and APK. Online-only; existing FastAPI backend and trading calculations remain server-side and unchanged.
