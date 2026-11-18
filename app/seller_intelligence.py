@@ -202,7 +202,16 @@ def _intraday_exit_events(frame: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 def analyze_option_chain(frame: pd.DataFrame, expiry: str | None = None) -> dict[str, Any]:
-    data = _normalise_columns(frame)
+    raw_data = _normalise_columns(frame)
+    intraday_source = raw_data.copy()
+    # Keep the last available observation for each contract/session for EOD
+    # comparisons; retain the raw sequence separately for intraday event scans.
+    sort_cols = ["trade_date", "expiry", "strike", "option_type"]
+    if "snapshot_time" in raw_data.columns:
+        sort_cols.append("snapshot_time")
+    data = raw_data.sort_values(sort_cols).drop_duplicates(
+        ["trade_date", "expiry", "strike", "option_type"], keep="last"
+    )
     latest_date = data["trade_date"].max()
     latest_all = data[data["trade_date"] == latest_date]
     if expiry:
@@ -232,7 +241,9 @@ def analyze_option_chain(frame: pd.DataFrame, expiry: str | None = None) -> dict
         _cluster_rows(latest, "CE", spot, step)
         + _cluster_rows(latest, "PE", spot, step)
     )
-    intraday_events = _intraday_exit_events(expiry_data)
+    intraday_events = _intraday_exit_events(
+        intraday_source[intraday_source["expiry"].dt.date == selected_expiry]
+    )
     return {
         "symbol": "NIFTY",
         "as_of": str(latest_date.date()),
