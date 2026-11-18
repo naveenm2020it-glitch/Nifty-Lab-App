@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.historical_sr import load_candles, load_levels, analyze as analyze_historical_sr, analyze_fixed_levels
 from app.auto_history import automated_analysis
+from app.seller_routes import router as seller_intelligence_router
 from app.data import (
     fetch_official_bhavcopy, parse_bhavcopy_bytes, filter_session, select_strikes,
     get_underlying_close, build_dashboard_rows, support_resistance,
@@ -23,8 +24,16 @@ from app.data import (
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LEGACY_HTML_PATH = PROJECT_ROOT / "static" / "index.html"
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
+SELLER_INTELLIGENCE_HTML = PROJECT_ROOT / "static" / "seller-intelligence.html"
 
-app = FastAPI(title="Index Options Intelligence", version="2.1.0")
+@app.get("/seller-intelligence", response_class=HTMLResponse, include_in_schema=False)
+def seller_intelligence_workspace():
+    if not SELLER_INTELLIGENCE_HTML.is_file():
+        raise HTTPException(404, "Seller Intelligence dashboard is not installed.")
+    return HTMLResponse(SELLER_INTELLIGENCE_HTML.read_text(encoding="utf-8"))
+
+app = FastAPI(title="Index Options Intelligence", version="2.2.0")
+app.include_router(seller_intelligence_router)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 @app.get("/assets/{asset_path:path}", include_in_schema=False)
