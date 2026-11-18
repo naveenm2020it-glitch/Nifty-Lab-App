@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   PanelsTopLeft,
   RefreshCw,
+  Radar,
   ShieldCheck,
   SlidersHorizontal,
   Sun,
@@ -24,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type PageKey = 'session' | 'overview' | 'contracts' | 'analytics' | 'historical-sr' | 'guide';
+type PageKey = 'session' | 'overview' | 'contracts' | 'analytics' | 'historical-sr' | 'seller-intelligence' | 'guide';
 type ApiStatus = 'checking' | 'online' | 'offline';
 
 const NAV_ITEMS: Array<{
@@ -39,6 +40,7 @@ const NAV_ITEMS: Array<{
   { key: 'contracts', label: 'Contracts', description: 'HLC ATM OHLC and selected option contracts', icon: PanelsTopLeft, group: 'workspace' },
   { key: 'analytics', label: 'BEP analysis', description: 'Call/put closing premium calculations', icon: Calculator, group: 'analysis' },
   { key: 'historical-sr', label: 'Historical S&R', description: 'Historical level reactions and event analysis', icon: History, group: 'analysis' },
+  { key: 'seller-intelligence', label: 'Seller Intelligence', description: 'Multi-session seller clusters and premium pressure', icon: Radar, group: 'analysis' },
   { key: 'guide', label: 'Formula guide', description: 'Existing formulas and calculation notes', icon: BookOpen, group: 'analysis' },
 ];
 
@@ -273,7 +275,7 @@ export default function App() {
               ref={iframeRef}
               className="workspace-frame"
               title="NIFTY LAB protected feature workspace"
-              src="/workspace"
+              src={activePage === 'seller-intelligence' ? '/seller-intelligence' : '/workspace'}
               onLoad={() => syncWorkspace(activePage, theme)}
               onError={() => setFrameError(true)}
             />
