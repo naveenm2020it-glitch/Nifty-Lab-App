@@ -16,14 +16,15 @@ router = APIRouter(prefix="/api/seller-intelligence", tags=["Seller Intelligence
 @router.get("/status")
 def seller_intelligence_status():
     provider = os.getenv("MARKET_DATA_PROVIDER", "").strip().lower()
-    configured = bool(provider and os.getenv("MARKET_DATA_API_KEY"))
+    credentials_present = bool(provider and os.getenv("MARKET_DATA_API_KEY"))
     return {
         "module": "NIFTY Seller Intelligence",
         "analysis_engine": "available",
-        "automatic_collection": "configured" if configured else "awaiting_licensed_market_data_credentials",
+        "automatic_collection": "disabled_until_provider_adapter_is_implemented",
         "provider": provider or None,
+        "provider_credentials_present": credentials_present,
         "required_environment": ["MARKET_DATA_PROVIDER", "MARKET_DATA_API_KEY"],
-        "note": "No NSE website scraping is performed by this module. Configure an authorised market-data API/feed before enabling unattended collection.",
+        "note": "The analytics engine is ready for validated CSV input. Unattended collection is not enabled yet; an authorised provider adapter and persistent storage must be configured first. No NSE webpage scraping is performed.",
     }
 
 
