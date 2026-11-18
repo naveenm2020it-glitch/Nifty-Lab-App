@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import os
+import hmac
 from io import BytesIO
 
 import pandas as pd
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
 
 from app.seller_intelligence import analyze_option_chain
 
@@ -30,7 +31,14 @@ def seller_intelligence_status():
 async def analyze_seller_csv(
     file: UploadFile = File(...),
     expiry: str | None = Query(default=None, description="Optional expiry in YYYY-MM-DD format"),
+    x_seller_key: str | None = Header(default=None),
 ):
+    expected_key = os.getenv("SELLER_INTELLIGENCE_API_KEY", "")
+    if not expected_key:
+        raise HTTPException(status_code=503, detail="Set SELLER_INTELLIGENCE_API_KEY on the server before enabling personal data uploads.")
+    if not x_seller_key or not hmac.compare_digest(x_seller_key, expected_key):
+        raise HTTPException(status_code=401, detail="Invalid or missing personal app key.")
+
     if not file.filename or not file.filename.lower().endswith((".csv", ".txt")):
         raise HTTPException(status_code=400, detail="Upload a CSV file.")
     payload = await file.read()
