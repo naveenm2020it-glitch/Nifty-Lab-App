@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIFTY Seller Intelligence</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#26364f;--muted:#93a4bb;--text:#edf4ff;--green:#35c98a;--red:#ff7185;--amber:#f2bd58}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#0b1220,#111d30);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
+main{max-width:1200px;margin:auto;padding:24px 18px 48px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:-.04em}h2{font-size:16px;margin:0 0 14px}.sub{color:var(--muted);margin:4px 0 0}
+.pill{border:1px solid var(--line);border-radius:99px;padding:6px 10px;color:var(--amber);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.card{background:rgba(18,29,48,.94);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.k{font-size:12px;color:var(--muted)}.v{font-size:22px;font-weight:750;margin-top:5px;overflow-wrap:anywhere}
+.row{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.field{display:grid;gap:6px;flex:1;min-width:180px}
+input,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px 12px;background:#0b1526;color:var(--text)}
+button{background:#256b54;border-color:#31896a;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}
+.notice{padding:12px 14px;border-radius:12px;background:#332918;border:1px solid #70592e;color:#f5d69a;margin:14px 0}
+.muted{color:var(--muted)}.section{margin-top:16px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:12px}th,td{text-align:right;padding:9px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600}
+.tag{display:inline-block;border-radius:99px;padding:3px 8px;background:#26364f;color:#c7d7ee;font-size:11px}.good{color:var(--green)}.bad{color:var(--red)}
+pre{white-space:pre-wrap;word-break:break-word;color:#c7d7ee}.empty{color:var(--muted);padding:16px 0}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:18px 12px 32px}}
+@media(max-width:430px){.grid{grid-template-columns:1fr 1fr}.card{padding:12px}.v{font-size:19px}}
+</style></head>
+<body><main>
+<header class="top"><div><h1>NIFTY Seller Intelligence</h1><p class="sub">Seller clusters · defence candidates · premium pressure research</p></div><span class="pill" id="feedState">Checking data source…</span></header>
+<div class="notice" id="sourceNotice">Automatic collection is not active until an authorised market-data provider and API credentials are configured. CSV analysis is available for research.</div>
+<section class="card">
+<h2>Analyse option-chain history</h2>
+<div class="row">
+<label class="field">Personal app key<input id="apiKey" type="password" autocomplete="off" placeholder="Server key (session only)"></label>
+<label class="field">Option-chain CSV<input id="csvFile" type="file" accept=".csv,text/csv"></label>
+<label class="field">Expiry (optional)<input id="expiry" type="date"></label>
+<button id="analyse">Analyse CSV</button>
+</div>
+<p class="muted">Required columns: trade_date, expiry, strike, option_type, oi, change_oi, volume, ltp, spot. Add snapshot_time for intraday pressure research.</p>
+<div id="uploadStatus" class="muted" role="status"></div>
+</section>
+<div class="grid">
+<div class="card"><div class="k">NIFTY spot</div><div class="v" id="spot">—</div></div>
+<div class="card"><div class="k">Selected expiry</div><div class="v" id="expiryOut">—</div></div>
+<div class="card"><div class="k">Sessions available</div><div class="v" id="sessions">—</div></div>
+<div class="card"><div class="k">Exit pressure events</div><div class="v" id="events">—</div></div>
+</div>
+<section class="card section"><h2>Seller cluster candidates</h2><div id="clusters" class="empty">Upload a validated CSV to view clusters.</div></section>
+<section class="card section"><h2>CE candidate ranking</h2><div id="ce" class="empty">No analysis loaded.</div></section>
+<section class="card section"><h2>PE candidate ranking</h2><div id="pe" class="empty">No analysis loaded.</div></section>
+<section class="grid section" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+<div class="card"><h2>5-session comparison</h2><div id="week" class="empty">No analysis loaded.</div></div>
+<div class="card"><h2>22-session comparison</h2><div id="month" class="empty">No analysis loaded.</div></div>
+</section>
+<section class="card section"><h2>Premium panic threshold</h2><div id="panic" class="empty">Not calculated. Intraday snapshots are required.</div></section>
+<p class="muted section">Research tool only. OI is matched open interest, not a seller-specific position ledger. Candidate clusters are not guaranteed support/resistance. No order execution is performed.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+async function loadStatus(){try{const r=await fetch('/api/seller-intelligence/status');const s=await r.json();$('feedState').textContent=s.automatic_collection==='configured'?'Provider configured':'Provider not configured';$('sourceNotice').textContent=s.note;}catch(e){$('feedState').textContent='API unavailable';}}
+function table(rows,cols){if(!rows||!rows.length)return '<div class="empty">No rows for this window.</div>';return '<div class="table-wrap"><table><thead><tr>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+cols.map(c=>'<td>'+((r[c[0]]??'—') )+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
+function render(d){$('spot').textContent=Number(d.spot).toLocaleString('en-IN');$('expiryOut').textContent=d.selected_expiry;$('sessions').textContent=d.sessions_available_for_expiry;$('events').textContent=d.possible_exit_pressure_events.length;
+$('clusters').innerHTML=d.seller_cluster_candidates.length?d.seller_cluster_candidates.map(c=>'<div style="padding:10px 0;border-bottom:1px solid var(--line)"><strong>'+c.side+' · '+c.from_strike+'–'+c.to_strike+'</strong> <span class="tag">'+c.classification+'</span><div class="muted">OI '+c.total_oi.toLocaleString('en-IN')+' · OI change +'+c.net_change_oi.toLocaleString('en-IN')+'</div><small class="muted">'+c.evidence+'</small></div>').join(''):'<div class="empty">No qualifying clusters in the selected expiry.</div>';
+$('ce').innerHTML=table(d.ce_candidates,[['strike','Strike'],['oi','OI'],['change_oi','Change OI'],['ltp','LTP'],['premium_change_pct','Premium %'],['candidate_score','Score']]);
+$('pe').innerHTML=table(d.pe_candidates,[['strike','Strike'],['oi','OI'],['change_oi','Change OI'],['ltp','LTP'],['premium_change_pct','Premium %'],['candidate_score','Score']]);
+const wc=[['strike','Strike'],['side','Side'],['oi_delta','OI Δ'],['premium_change_pct','Premium %']];
+$('week').innerHTML='<p class="muted">'+d.windows.one_week.available_sessions+' / 5 sessions</p>'+table(d.windows.one_week.strikes,wc);
+$('month').innerHTML='<p class="muted">'+d.windows.one_month.available_sessions+' / 22 sessions</p>'+table(d.windows.one_month.strikes,wc);
+$('panic').innerHTML='<span class="tag">'+d.premium_panic_threshold.status+'</span><p>'+d.premium_panic_threshold.explanation+'</p><p class="muted">Observed events: '+d.possible_exit_pressure_events.length+'</p>';
+}
+$('analyse').addEventListener('click',async()=>{const file=$('csvFile').files[0],key=$('apiKey').value;if(!file){$('uploadStatus').textContent='Select a CSV file first.';return;}if(!key){$('uploadStatus').textContent='Enter the personal app key configured on the server.';return;}const body=new FormData();body.append('file',file);const expiry=$('expiry').value;const url='/api/seller-intelligence/analyze-csv'+(expiry?'?expiry='+encodeURIComponent(expiry):'');$('analyse').disabled=true;$('uploadStatus').textContent='Analysing…';try{const res=await fetch(url,{method:'POST',headers:{'X-Seller-Key':key},body});const data=await res.json();if(!res.ok)throw new Error(data.detail||'Analysis failed');render(data);$('uploadStatus').textContent='Analysis complete · '+data.as_of+' · '+data.selected_expiry;}catch(err){$('uploadStatus').textContent=err.message;}finally{$('analyse').disabled=false;}});
+loadStatus();
+</script></body></html>
