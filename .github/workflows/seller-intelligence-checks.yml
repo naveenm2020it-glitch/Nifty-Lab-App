@@ -1,0 +1,43 @@
+name: Seller Intelligence checks
+
+on:
+  push:
+    branches:
+      - feature/nifty-seller-intelligence
+    paths:
+      - "app/seller_intelligence.py"
+      - "app/seller_routes.py"
+      - "app/main.py"
+      - "tests/test_seller_intelligence.py"
+      - "frontend/**"
+      - ".github/workflows/seller-intelligence-checks.yml"
+  pull_request:
+    paths:
+      - "app/seller_intelligence.py"
+      - "app/seller_routes.py"
+      - "app/main.py"
+      - "tests/test_seller_intelligence.py"
+      - "frontend/**"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: pytest -q tests/test_seller_intelligence.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - working-directory: frontend
+        run: npm install
+      - working-directory: frontend
+        run: npm run build
